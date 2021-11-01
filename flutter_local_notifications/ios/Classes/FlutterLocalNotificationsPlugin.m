@@ -58,6 +58,7 @@ NSString *const PRESENT_SOUND = @"presentSound";
 NSString *const PRESENT_BADGE = @"presentBadge";
 NSString *const BADGE_NUMBER = @"badgeNumber";
 NSString *const MILLISECONDS_SINCE_EPOCH = @"millisecondsSinceEpoch";
+NSString *const CALLED_AT = @"calledAt";
 NSString *const REPEAT_INTERVAL = @"repeatInterval";
 NSString *const REPEAT_TIME = @"repeatTime";
 NSString *const HOUR = @"hour";
@@ -412,11 +413,8 @@ static FlutterError *getFlutterError(NSError *error) {
 }
 
 - (void)periodicallyShow:(NSDictionary * _Nonnull)arguments result:(FlutterResult _Nonnull)result {
-    if(@available(iOS 10.0, *)) {
-        UNMutableNotificationContent *content = [self buildStandardNotificationContent:arguments result:result];
-        UNTimeIntervalNotificationTrigger *trigger = [self buildUserNotificationTimeIntervalTrigger:arguments];
-        [self addNotificationRequest:[self getIdentifier:arguments] content:content result:result trigger:trigger];
-    } else {
+        NSNumber *secondsSinceEpoch = @([arguments[CALLED_AT] longLongValue] / 1000);
+        NSDate *calledAtDate = [NSDate dateWithTimeIntervalSince1970:[secondsSinceEpoch longLongValue]];
         UILocalNotification * notification = [self buildStandardUILocalNotification:arguments];
         NSTimeInterval timeInterval = 0;
         switch([arguments[REPEAT_INTERVAL] integerValue]) {
@@ -437,10 +435,13 @@ static FlutterError *getFlutterError(NSError *error) {
                 notification.repeatInterval = NSCalendarUnitWeekOfYear;
                 break;
         }
-        notification.fireDate = [NSDate dateWithTimeIntervalSinceNow:timeInterval];
+        notification.fireDate = [NSDate dateWithTimeInterval:timeInterval sinceDate:calledAtDate];
         [[UIApplication sharedApplication] scheduleLocalNotification:notification];
         result(nil);
-    }
+//        UNMutableNotificationContent *content = [self buildStandardNotificationContent:arguments result:result];
+//        UNTimeIntervalNotificationTrigger *trigger = [self buildUserNotificationTimeIntervalTrigger:arguments];
+//        [self addNotificationRequest:[self getIdentifier:arguments] content:content result:result trigger:trigger];
+
 }
 
 - (void)showDailyAtTime:(NSDictionary * _Nonnull)arguments result:(FlutterResult _Nonnull)result {
